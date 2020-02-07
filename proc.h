@@ -41,8 +41,6 @@ struct proc {
   char *kstack;                // Bottom of kernel stack for this process
   enum procstate state;        // Process state
   int pid;                     // Process ID
-  int gid;					   // group ID --parent process ID or same as pid // Ben
-  int32_t gpd;				   // context switch                              // Ben
   struct proc *parent;         // Parent process
   struct trapframe *tf;        // Trap frame for current syscall
   struct context *context;     // swtch() here to run process
@@ -51,6 +49,10 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[64];               // Process name (debugging)					   // Ben changed from [16]
+  int gid;					   // group ID --parent process ID or same as pid // Ben
+  int threadCnt;               // number of child threads                     // Ben
+  //int32_t gpd;				   // context switch                              // Ben
+  void *arg;					   // argument to return on function complete in thread //Ben
 };
 
 // Process memory is laid out contiguously, low addresses first:

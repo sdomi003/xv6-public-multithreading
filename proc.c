@@ -532,3 +532,122 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+// Work in progess Thread
+int clone()
+{
+	
+	int i, pid;
+	struct proc *parent = myproc();
+	struct proc *thread;
+	
+	if (parent->threadCnt >= 10)
+	{
+		cprintf("Current Process has too many threads");
+		return -1;
+	}
+	
+	if((thread = allocproc()) == 0){
+    return -1;
+  }
+
+  // assign process state from proc.
+  thread->pgdir = parent->pgdir;
+  thread->sz = parent->sz;
+    
+  thread->parent = parent;
+  *thread->tf = *parent->tf;
+
+  // Clear %eax so that copy returns 0 in the child.
+  thread->tf->eax = 0;
+
+  for(i = 0; i < NOFILE; i++)
+    if(parent->ofile[i])
+      thread->ofile[i] = filedup(parent->ofile[i]);
+  thread->cwd = idup(parent->cwd);
+
+  safestrcpy(thread->name, parent->name, sizeof(parent->name));
+
+  pid = thread->pid;
+
+  acquire(&ptable.lock);
+
+  thread->state = RUNNABLE;
+
+  release(&ptable.lock);
+
+  return pid;
+}
+
+// clones current process, parent returns pid and child runs function.
+int thread_create(void *(*func)(void*),void* arg) 
+{
+	int thread_pid = clone();
+	if (thread_pid) {return thread_pid;}
+	struct proc *thread = myproc();
+	(*func)(arg);
+	thread->state = ZOMBIE;
+	return 0;
+}
+
+int thread_join(int t_pid)
+{
+	struct proc *p;
+	int havekids, pid;
+	struct proc *curproc = myproc();
+
+	acquire(&ptable.lock);
+	for(;;){
+		// Scan through table looking for exited children.
+		havekids = 0;
+		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+			if(p->parent != curproc)
+			continue;
+			havekids = 1;
+			if(p->state == ZOMBIE && (t_pid == 0 || p->pid == t_pid)){
+				// Found one.
+				pid = p->pid;
+				kfree(p->kstack);
+				p->kstack = 0;
+				//freevm(p->pgdir); freeing pgdir will free it for parent
+				p->pgdir = 0;
+				p->pid = 0;
+				p->gid = 0;
+				p->parent->threadCnt--;
+				p->parent = 0;
+				p->name[0] = 0;
+				p->killed = 0;
+				p->state = UNUSED;
+				release(&ptable.lock);
+				return pid;
+			}
+		}
+
+	// No point waiting if we don't have any children.
+	if(!havekids || curproc->killed){
+		release(&ptable.lock);
+		return -1;
+	}
+
+		// Wait for children to exit.  (See wakeup1 call in proc_exit.)
+		sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+	}
+}
+
+void *Increment(void *num)
+{ (int)num = *(int)num + 1; }
+
+// simple test of create and join thread	//Ben
+int test_thread(int num_t)
+{
+	int num;
+	int pid;
+	int i;
+	for (i=0; i < num_t; i++)
+	{
+		pid = thread_create(Increment,&num);
+		cprintf("%d\n",num);
+		thread_join(pid);
+	}
+	return 0;
+}
