@@ -97,5 +97,5 @@ sys_testThread(void)
 
   if(argint(0, &n) < 0)
     return -1;
-  return test_thread(n);
+  return testThread(n);
 }

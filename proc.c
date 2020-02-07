@@ -638,7 +638,7 @@ void *Increment(void *num)
 { (int)num = *(int)num + 1; }
 
 // simple test of create and join thread	//Ben
-int test_thread(int num_t)
+int testThread(int num_t)
 {
 	int num;
 	int pid;
