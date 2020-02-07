@@ -534,7 +534,7 @@ procdump(void)
 }
 
 // Work in progess Thread
-int clone()
+int clone(void (*func)(),void *arg)
 {
 	
 	int i, pid;
@@ -580,9 +580,9 @@ int clone()
 }
 
 // clones current process, parent returns pid and child runs function.
-int thread_create(void *(*func)(void*),void* arg) 
+int thread_create(void (*func)(),void *arg) 
 {
-	int thread_pid = clone();
+	int thread_pid = clone(func,arg);
 	if (thread_pid) {return thread_pid;}
 	struct proc *thread = myproc();
 	(*func)(arg);
@@ -634,13 +634,16 @@ int thread_join(int t_pid)
 	}
 }
 
-void *Increment(void *num)
-{ (int)num = *(int)num + 1; }
+void Increment(int *num)
+{ 
+	*num = *num + 1;
+	return;
+}
 
 // simple test of create and join thread	//Ben
 int testThread(int num_t)
 {
-	int num;
+	int *num;
 	int pid;
 	int i;
 	for (i=0; i < num_t; i++)

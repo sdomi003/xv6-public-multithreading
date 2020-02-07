@@ -90,6 +90,8 @@ sys_uptime(void)
   return xticks;
 }
 
+int testThread(int num_t);
+
 int
 sys_testThread(void)
 { 
