@@ -534,9 +534,10 @@ procdump(void)
 }
 
 // Work in progess Thread
-int clone(void (*func)(),void *arg)
+int clone(void (*func)(void*),void *arg,void *stack)
 {
-	
+	cprintf("start clone\n");
+	//int *ret, *parg;
 	int i, pid;
 	struct proc *parent = myproc();
 	struct proc *thread;
@@ -548,18 +549,46 @@ int clone(void (*func)(),void *arg)
 	}
 	
 	if((thread = allocproc()) == 0){
-    return -1;
-  }
-
+		return -1;
+	}
+  
   // assign process state from proc.
-  thread->pgdir = parent->pgdir;
   thread->sz = parent->sz;
-    
+  
   thread->parent = parent;
+  
   *thread->tf = *parent->tf;
+  
+  thread->pgdir = parent->pgdir;
+    
+  
+  thread->tf->eip = (uint)func;
 
   // Clear %eax so that copy returns 0 in the child.
   thread->tf->eax = 0;
+
+  thread->stack = (uint)stack;
+  
+  
+  thread->tf->esp = (uint)stack + 4096;
+  *((uint*)(thread->tf->esp)) = (uint)arg;
+  *((uint*)(thread->tf->esp - 4)) = 0xffffffff;
+  thread->tf->esp -= 4;
+  
+  
+  // set return address below arguments 				// Ben
+  //ret = stack + 4096 - 2*sizeof(int*);
+  //*ret = 0xFFFFFFFF;
+
+  // add arguments to top of stack				// Ben
+  //parg = stack + 4096 - sizeof(int*);
+  //*parg = (int)arg;							
+	
+  //thread->tf->esp = (uint)stack + 4096 - 2*sizeof(int*);
+  thread->tf->ebp = (uint)stack + 4096;
+	
+  // set isthread to true;				// Ben
+  thread->isthread = 1;	
 
   for(i = 0; i < NOFILE; i++)
     if(parent->ofile[i])
@@ -582,16 +611,17 @@ int clone(void (*func)(),void *arg)
 // clones current process, parent returns pid and child runs function.
 int thread_create(void (*func)(),void *arg) 
 {
-	int thread_pid = clone(func,arg);
-	if (thread_pid) {return thread_pid;}
-	struct proc *thread = myproc();
-	(*func)(arg);
-	thread->state = ZOMBIE;
 	return 0;
 }
 
-int thread_join(int t_pid)
+
+// pass 0 to join any thread once
+// otherwise pass the pid of thread to join
+int kthread_join(int t_pid)
 {
+	cprintf("start join\n");
+	if (t_pid < 0) return -1; // not 0 or a pid return fail
+	
 	struct proc *p;
 	int havekids, pid;
 	struct proc *curproc = myproc();
@@ -610,7 +640,7 @@ int thread_join(int t_pid)
 				kfree(p->kstack);
 				p->kstack = 0;
 				//freevm(p->pgdir); freeing pgdir will free it for parent
-				p->pgdir = 0;
+				// p->pgdir = 0;
 				p->pid = 0;
 				p->gid = 0;
 				p->parent->threadCnt--;
@@ -632,25 +662,4 @@ int thread_join(int t_pid)
 		// Wait for children to exit.  (See wakeup1 call in proc_exit.)
 		sleep(curproc, &ptable.lock);  //DOC: wait-sleep
 	}
-}
-
-void Increment(int *num)
-{ 
-	*num = *num + 1;
-	return;
-}
-
-// simple test of create and join thread	//Ben
-int testThread(int num_t)
-{
-	int *num;
-	int pid;
-	int i;
-	for (i=0; i < num_t; i++)
-	{
-		pid = thread_create(Increment,&num);
-		cprintf("%d\n",num);
-		thread_join(pid);
-	}
-	return 0;
 }

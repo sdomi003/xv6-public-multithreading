@@ -90,14 +90,27 @@ sys_uptime(void)
   return xticks;
 }
 
-int testThread(int num_t);
 
 int
-sys_testThread(void)
+sys_clone(void)
 { 
-  int n;
-
-  if(argint(0, &n) < 0)
+  int function, arg, stack;
+  
+  if(argint(0, &function) < 0)
     return -1;
-  return testThread(n);
+  if(argint(1, &arg) < 0)
+    return -1;
+  if(argint(1, &stack) < 0)
+    return -1;
+  return clone((void*)function,(void*)arg,(void*)stack);
+}
+
+
+int				
+sys_kthread_join(void)
+{
+	int t_pid;
+	if(argint(0, &t_pid) < 0)
+		return -1;
+	return kthread_join((int)t_pid);
 }

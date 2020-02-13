@@ -23,7 +23,8 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-int testThread(int);
+int clone(void(*)(void*),void*,void*);
+int kthread_join(void*);
 
 // ulib.c
 int stat(const char*, struct stat*);

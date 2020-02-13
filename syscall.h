@@ -20,4 +20,5 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
-#define SYS_testThread  22
+#define SYS_clone  22
+#define SYS_kthread_join  23

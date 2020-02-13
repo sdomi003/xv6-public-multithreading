@@ -48,11 +48,13 @@ struct proc {
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
-  char name[64];               // Process name (debugging)					   // Ben changed from [16]
+  char name[16];               // Process name (debugging)					   
   int gid;					   // group ID --parent process ID or same as pid // Ben
   int threadCnt;               // number of child threads                     // Ben
-  //int32_t gpd;				   // context switch                              // Ben
-  void *arg;					   // argument to return on function complete in thread //Ben
+  int gpd;				   		// context switch      					// Ben
+  int isthread;                        
+  uint stack;					   // argument to return on function complete in thread //Ben
+	
 };
 
 // Process memory is laid out contiguously, low addresses first:
