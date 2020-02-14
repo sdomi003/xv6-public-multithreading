@@ -284,6 +284,7 @@ wait(void)
       if(p->parent != curproc)
         continue;
       havekids = 1;
+     
       if(p->state == ZOMBIE){
         // Found one.
         pid = p->pid;
@@ -536,7 +537,7 @@ procdump(void)
 // Work in progess Thread
 int clone(void (*func)(void*),void *arg,void *stack)
 {
-	cprintf("start clone\n");
+	//cprintf("start clone\n"); // debug print
 	//int *ret, *parg;
 	int i, pid;
 	struct proc *parent = myproc();
@@ -555,37 +556,25 @@ int clone(void (*func)(void*),void *arg,void *stack)
   // assign process state from proc.
   thread->sz = parent->sz;
   
-  thread->parent = parent;
-  
+  // set trapframe
   *thread->tf = *parent->tf;
   
-  thread->pgdir = parent->pgdir;
-    
-  
-  thread->tf->eip = (uint)func;
+  // set parent 
+  thread->parent = parent;
+  // set pgdir
+  thread->pgdir = parent->pgdir; 
+  // set instruction pointer to function
+  thread->tf->eip = (int)func;
 
   // Clear %eax so that copy returns 0 in the child.
   thread->tf->eax = 0;
-
+  // set user stack
   thread->stack = (uint)stack;
   
-  
-  thread->tf->esp = (uint)stack + 4096;
+  thread->tf->esp = (uint)(stack + 4096 - 4);
   *((uint*)(thread->tf->esp)) = (uint)arg;
-  *((uint*)(thread->tf->esp - 4)) = 0xffffffff;
+  *((uint*)(thread->tf->esp - 4)) = 0xFFFFFFFF;
   thread->tf->esp -= 4;
-  
-  
-  // set return address below arguments 				// Ben
-  //ret = stack + 4096 - 2*sizeof(int*);
-  //*ret = 0xFFFFFFFF;
-
-  // add arguments to top of stack				// Ben
-  //parg = stack + 4096 - sizeof(int*);
-  //*parg = (int)arg;							
-	
-  //thread->tf->esp = (uint)stack + 4096 - 2*sizeof(int*);
-  thread->tf->ebp = (uint)stack + 4096;
 	
   // set isthread to true;				// Ben
   thread->isthread = 1;	
@@ -617,10 +606,9 @@ int thread_create(void (*func)(),void *arg)
 
 // pass 0 to join any thread once
 // otherwise pass the pid of thread to join
-int kthread_join(int t_pid)
+int kthread_join(void *stack)
 {
-	cprintf("start join\n");
-	if (t_pid < 0) return -1; // not 0 or a pid return fail
+	//cprintf("start join\n");  // debug print
 	
 	struct proc *p;
 	int havekids, pid;
@@ -632,15 +620,15 @@ int kthread_join(int t_pid)
 		havekids = 0;
 		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 			if(p->parent != curproc)
-			continue;
+				continue;
+				
 			havekids = 1;
-			if(p->state == ZOMBIE && (t_pid == 0 || p->pid == t_pid)){
+			
+			if(p->state == ZOMBIE){
 				// Found one.
 				pid = p->pid;
 				kfree(p->kstack);
 				p->kstack = 0;
-				//freevm(p->pgdir); freeing pgdir will free it for parent
-				// p->pgdir = 0;
 				p->pid = 0;
 				p->gid = 0;
 				p->parent->threadCnt--;
@@ -653,12 +641,12 @@ int kthread_join(int t_pid)
 			}
 		}
 
-	// No point waiting if we don't have any children.
-	if(!havekids || curproc->killed){
-		release(&ptable.lock);
-		return -1;
-	}
-
+		// No point waiting if we don't have any children.
+		if(!havekids || curproc->killed){
+			release(&ptable.lock);
+			return -1;
+		}
+		
 		// Wait for children to exit.  (See wakeup1 call in proc_exit.)
 		sleep(curproc, &ptable.lock);  //DOC: wait-sleep
 	}

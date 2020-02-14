@@ -109,8 +109,8 @@ sys_clone(void)
 int				
 sys_kthread_join(void)
 {
-	int t_pid;
-	if(argint(0, &t_pid) < 0)
-		return -1;
-	return kthread_join((int)t_pid);
+	int stack;
+    if(argint(1, &stack) < 0)
+        return -1;
+    return kthread_join((void*)stack);
 }

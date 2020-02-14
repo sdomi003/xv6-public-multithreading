@@ -121,7 +121,7 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 int 			clone(void(*)(void*),void*,void*);
-int				kthread_join(int);
+int				kthread_join(void*);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
