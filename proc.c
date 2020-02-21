@@ -12,9 +12,15 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
+struct {
+	struct spinlock lock;
+	struct mutex_t mutex[NPROC];
+} mtable;
+
 static struct proc *initproc;
 
 int nextpid = 1;
+int nextmid = 1;
 extern void forkret(void);
 extern void trapret(void);
 
@@ -281,11 +287,14 @@ wait(void)
     // Scan through table looking for exited children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != curproc)
+      if(p->parent != curproc || p->isthread) // must not be a thread, continue if thread found 
         continue;
       havekids = 1;
      
       if(p->state == ZOMBIE){
+		  // reap all threads before reaping process 
+		 while (p->threadCnt > 0) {kthread_join((void*)0);}
+		  
         // Found one.
         pid = p->pid;
         kfree(p->kstack);
@@ -534,12 +543,13 @@ procdump(void)
   }
 }
 
-// Work in progess Thread
+// Work in progess Thread create
+// arg can use struct for multiple arguments
 int clone(void (*func)(void*),void *arg,void *stack)
 {
 	//cprintf("start clone\n"); // debug print
-	//int *ret, *parg;
 	int i, pid;
+	
 	struct proc *parent = myproc();
 	struct proc *thread;
 	
@@ -559,8 +569,10 @@ int clone(void (*func)(void*),void *arg,void *stack)
   // set trapframe
   *thread->tf = *parent->tf;
   
-  // set parent 
-  thread->parent = parent;
+  // set parent to process
+  if (parent->isthread) { thread->parent = parent->parent;}
+  else { thread->parent = parent; }
+  
   // set pgdir
   thread->pgdir = parent->pgdir; 
   // set instruction pointer to function
@@ -571,14 +583,18 @@ int clone(void (*func)(void*),void *arg,void *stack)
   // set user stack
   thread->stack = (uint)stack;
   
-  thread->tf->esp = (uint)(stack + 4096 - 4);
+  
+  thread->tf->esp =(uint)(stack + 4096 - 4);
+  
   *((uint*)(thread->tf->esp)) = (uint)arg;
   *((uint*)(thread->tf->esp - 4)) = 0xFFFFFFFF;
   thread->tf->esp -= 4;
 	
   // set isthread to true;				// Ben
   thread->isthread = 1;	
-
+  // increment the parent process thread count
+  parent->threadCnt++;
+  
   for(i = 0; i < NOFILE; i++)
     if(parent->ofile[i])
       thread->ofile[i] = filedup(parent->ofile[i]);
@@ -597,15 +613,7 @@ int clone(void (*func)(void*),void *arg,void *stack)
   return pid;
 }
 
-// clones current process, parent returns pid and child runs function.
-int thread_create(void (*func)(),void *arg) 
-{
-	return 0;
-}
-
-
-// pass 0 to join any thread once
-// otherwise pass the pid of thread to join
+// pass stack to join first availible thread to reap
 int kthread_join(void *stack)
 {
 	//cprintf("start join\n");  // debug print
@@ -619,7 +627,7 @@ int kthread_join(void *stack)
 		// Scan through table looking for exited children.
 		havekids = 0;
 		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-			if(p->parent != curproc)
+			if( !p->isthread || p->parent != curproc)
 				continue;
 				
 			havekids = 1;
@@ -651,3 +659,102 @@ int kthread_join(void *stack)
 		sleep(curproc, &ptable.lock);  //DOC: wait-sleep
 	}
 }
+
+int mutex_alloc()
+{
+	struct mutex_t *m;
+	acquire(&mtable.lock);
+	for(m = mtable.mutex; m < &mtable.mutex[NPROC]; m++){
+		if (m->state != MUUNUSED){continue;}
+		if (m == &mtable.mutex[NPROC]) 
+		{
+			release(&mtable.lock);
+			return -1;
+		}
+		break;
+	}
+	m->mid = nextmid++;
+	m->state = UNLOCKED;
+	
+	release(&mtable.lock);
+	return m->mid;
+}
+
+int mutex_dealloc(int mid)
+{
+	struct mutex_t *m;
+	acquire(&mtable.lock);
+	for(m = mtable.mutex; m < &mtable.mutex[NPROC]; m++){
+		if (m->mid != mid){continue;}
+		break;
+	}
+	
+	if (m == &mtable.mutex[NPROC] || m->state == MUUNUSED) 
+	{
+		release(&mtable.lock);
+		return -1;
+	}
+	
+	m->mid = 0;
+	m->state = MUUNUSED;
+	
+	release(&mtable.lock);
+	return 0;
+}
+
+int mutex_lock(int mid)
+{
+	struct mutex_t *m;
+	acquire(&mtable.lock);
+	
+	for(;;){
+		for(m = mtable.mutex; m < &mtable.mutex[NPROC]; m++){
+			if (m->mid != mid){continue;}
+			break;
+		}
+		
+		if (m == &mtable.mutex[NPROC] || m->state == MUUNUSED) 
+		{
+			release(&mtable.lock);
+			return -1;
+		}
+		
+		if (m->state == LOCKED)
+		{
+			sleep(m, &mtable.lock);
+		}
+		
+		m->state = LOCKED;
+		release(&mtable.lock);
+		return 0;
+	}
+}
+
+int mutex_unlock(int mid)
+{
+	struct mutex_t *m;
+	acquire(&mtable.lock);
+	for(m = mtable.mutex; m < &mtable.mutex[NPROC]; m++){
+		if (m->mid != mid){continue;}
+		break;
+	}
+	
+	if (m == &mtable.mutex[NPROC] || m->state == MUUNUSED) 
+	{
+		release(&mtable.lock);
+		return -1;
+	}
+	return 0;
+}
+
+int sem_init()
+{return 0;}
+
+int sem_lock()
+{return 0;}
+
+int sem_unlock()
+{return 0;}
+
+int sem_wait()
+{return 0;}

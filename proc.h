@@ -33,6 +33,7 @@ struct context {
 };
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+enum mutexstate { MUUNUSED, LOCKED, UNLOCKED};
 
 // Per-process state
 struct proc {
@@ -55,6 +56,11 @@ struct proc {
   int isthread;                        
   uint stack;					   // argument to return on function complete in thread //Ben
 	
+};
+
+struct mutex_t {
+	int mid;
+	enum mutexstate state;
 };
 
 // Process memory is laid out contiguously, low addresses first:

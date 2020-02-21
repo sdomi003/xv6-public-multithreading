@@ -102,7 +102,7 @@ sys_clone(void)
     return -1;
   if(argint(1, &stack) < 0)
     return -1;
-  return clone((void*)function,(void*)arg,(void*)stack);
+  return clone((void*)function,(void**)arg,(void*)stack);
 }
 
 
