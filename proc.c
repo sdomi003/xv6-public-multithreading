@@ -14,13 +14,13 @@ struct {
 
 struct {
 	struct spinlock lock;
-	struct mutex_t mutex[NPROC];
-} mtable;
+	struct sem_t sem[NPROC];
+} stable;
 
 static struct proc *initproc;
 
 int nextpid = 1;
-int nextmid = 1;
+int nextsid = 1;
 extern void forkret(void);
 extern void trapret(void);
 
@@ -589,7 +589,7 @@ int clone(void (*func)(void*),void *arg,void *stack)
   *((uint*)(thread->tf->esp)) = (uint)arg;
   *((uint*)(thread->tf->esp - 4)) = 0xFFFFFFFF;
   thread->tf->esp -= 4;
-	
+  thread->tf->ebp = thread->tf->esp;
   // set isthread to true;				// Ben
   thread->isthread = 1;	
   // increment the parent process thread count
@@ -614,7 +614,7 @@ int clone(void (*func)(void*),void *arg,void *stack)
 }
 
 // pass stack to join first availible thread to reap
-int kthread_join(void *stack)
+int kthread_join(void *tid)
 {
 	//cprintf("start join\n");  // debug print
 	
@@ -644,7 +644,9 @@ int kthread_join(void *stack)
 				p->name[0] = 0;
 				p->killed = 0;
 				p->state = UNUSED;
+				p->isthread = 0;
 				release(&ptable.lock);
+				
 				return pid;
 			}
 		}
@@ -660,101 +662,94 @@ int kthread_join(void *stack)
 	}
 }
 
-int mutex_alloc()
+int sem_init(int *sem,int pshared, uint count)
 {
-	struct mutex_t *m;
-	acquire(&mtable.lock);
-	for(m = mtable.mutex; m < &mtable.mutex[NPROC]; m++){
-		if (m->state != MUUNUSED){continue;}
-		if (m == &mtable.mutex[NPROC]) 
-		{
-			release(&mtable.lock);
-			return -1;
-		}
-		break;
-	}
-	m->mid = nextmid++;
-	m->state = UNLOCKED;
-	
-	release(&mtable.lock);
-	return m->mid;
-}
-
-int mutex_dealloc(int mid)
-{
-	struct mutex_t *m;
-	acquire(&mtable.lock);
-	for(m = mtable.mutex; m < &mtable.mutex[NPROC]; m++){
-		if (m->mid != mid){continue;}
-		break;
-	}
-	
-	if (m == &mtable.mutex[NPROC] || m->state == MUUNUSED) 
+	struct sem_t *s;
+	int index;
+	acquire(&stable.lock);
+	for(index = 0; index < NPROC;  index++)
 	{
-		release(&mtable.lock);
-		return -1;
-	}
-	
-	m->mid = 0;
-	m->state = MUUNUSED;
-	
-	release(&mtable.lock);
-	return 0;
-}
+		s = &stable.sem[index];
 
-int mutex_lock(int mid)
-{
-	struct mutex_t *m;
-	acquire(&mtable.lock);
-	
-	for(;;){
-		for(m = mtable.mutex; m < &mtable.mutex[NPROC]; m++){
-			if (m->mid != mid){continue;}
-			break;
-		}
+		if (s->state == SUSED){continue;}
 		
-		if (m == &mtable.mutex[NPROC] || m->state == MUUNUSED) 
-		{
-			release(&mtable.lock);
-			return -1;
-		}
-		
-		if (m->state == LOCKED)
-		{
-			sleep(m, &mtable.lock);
-		}
-		
-		m->state = LOCKED;
-		release(&mtable.lock);
+		s->state = SUSED;
+		s->pshared = pshared;
+		s->maxcount = s->curcount = count;
+		s->sid = nextsid++;
+		*sem = index;
+		release(&stable.lock);
 		return 0;
 	}
+
+	release(&stable.lock);
+	return -1;
 }
 
-int mutex_unlock(int mid)
-{
-	struct mutex_t *m;
-	acquire(&mtable.lock);
-	for(m = mtable.mutex; m < &mtable.mutex[NPROC]; m++){
-		if (m->mid != mid){continue;}
-		break;
-	}
+int sem_destroy(int *sem)
+{	
+	struct sem_t *s;
+	acquire(&stable.lock);
+	s = &stable.sem[(*sem)];
 	
-	if (m == &mtable.mutex[NPROC] || m->state == MUUNUSED) 
+	if (s->state == SUNUSED)
 	{
-		release(&mtable.lock);
+		release(&stable.lock);
 		return -1;
 	}
+	
+	s->state = SUNUSED;
+	s->pshared = 0;
+	s->maxcount = s->curcount = 0;
+	s->sid = 0;
+	release(&stable.lock);
 	return 0;
 }
 
-int sem_init()
-{return 0;}
+int sem_post(int *sem)
+{
+	struct sem_t *s;
+	acquire(&stable.lock);
+	s = &stable.sem[(*sem)];
+	release(&stable.lock);
+	
+	if (s->state == SUNUSED) {return -1;}
+	
+	if (s->curcount < s->maxcount)
+	{ 
+		acquire(&stable.lock);
+		s->curcount++; 
+		release(&stable.lock);
+	}
+	else { return -1;}
+	return 0;
+}
 
-int sem_lock()
-{return 0;}
+int sem_wait(int *sem)
+{
+	struct sem_t *s;
+	
+	acquire(&stable.lock);
+	s = &stable.sem[(*sem)];
+	release(&stable.lock);
+	
+	if (s->state == SUNUSED) {return -1;}
+	while(1)
+	{ 
+		acquire(&stable.lock);
+		if (s->curcount <= 0) 
+		{
+			release(&stable.lock);
+			yield(); 
+		}
+		else 
+		{
+			s->curcount--;
+			release(&stable.lock);
+			break;
+		}
+	}
+	
+	return 0;
+}
 
-int sem_unlock()
-{return 0;}
-
-int sem_wait()
-{return 0;}

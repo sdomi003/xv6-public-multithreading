@@ -100,7 +100,7 @@ sys_clone(void)
     return -1;
   if(argint(1, &arg) < 0)
     return -1;
-  if(argint(1, &stack) < 0)
+  if(argint(2, &stack) < 0)
     return -1;
   return clone((void*)function,(void**)arg,(void*)stack);
 }
@@ -110,7 +110,47 @@ int
 sys_kthread_join(void)
 {
 	int stack;
-    if(argint(1, &stack) < 0)
+    if(argint(0, &stack) < 0)
         return -1;
     return kthread_join((void*)stack);
+}
+
+int
+sys_sem_init(void)
+{
+	int sem,pshared,count;
+    if(argint(0, &sem) < 0)
+        return -1;
+    if(argint(1, &pshared) < 0)
+        return -1;
+    if(argint(2, &count) < 0)
+        return -1;
+    return sem_init((int*)sem,pshared,(uint)count);
+}
+
+int
+sys_sem_destroy(void)
+{
+	int sem;
+    if(argint(0, &sem) < 0)
+        return -1;
+    return sem_destroy((int*)sem);
+}
+
+int
+sys_sem_wait(void)
+{
+	int sem;
+    if(argint(0, &sem) < 0)
+        return -1;
+    return sem_wait((int*)sem);
+}
+
+int
+sys_sem_post(void)
+{
+	int sem;
+    if(argint(0, &sem) < 0)
+        return -1;
+    return sem_post((int*)sem);
 }

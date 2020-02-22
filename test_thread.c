@@ -8,6 +8,7 @@ struct multiArgs
    char *c;
 };
 
+int *sem;
 
 void test1(void *num)
 {
@@ -29,6 +30,16 @@ void test2(void *multiarg)
    exit();
 }
 
+void test3(void *arg)
+{
+   int *num = (int*)arg;
+   printf(0,"test3 thread\n");
+   sem_wait(sem);
+   *num += 2;
+   sem_post(sem); 
+   exit();
+}
+
 
 int main(int argc,char **argv)
 {
@@ -39,8 +50,8 @@ int main(int argc,char **argv)
   clone(&test1,&num,stack);
   printf(0,"pid = %d\n",kthread_join(stack));
   
-  if (num == 1)  printf(0,"test 1: PASS\n");
-  else 		 printf(0,"test 1: FAIL\n");
+  if (num == 1)  printf(0,"test single increment: PASS\n");
+  else 		 printf(0,"test single increment: FAIL\n");
   
   struct multiArgs *ma = malloc(sizeof(struct multiArgs));
 
@@ -51,16 +62,47 @@ int main(int argc,char **argv)
    clone(&test2,ma,stack);
    printf(0,"pid = %d\n",kthread_join(stack));
   
-   if (ma->i == 3 && strcmp(ma->c,"HJ") == 0 && ma->f == 7)  printf(0,"test 2: PASS\n");
+   if (ma->i == 3 && strcmp(ma->c,"HJ") == 0 && ma->f == 7)  printf(0,"test struct multi arguments: PASS\n");
    else 
    {		 			 
-	printf(0,"test 2: FAIL\n");
+	printf(0,"test struct multi argmunets: FAIL\n");
    }
 	printf(0,"i = %d\n", ma->i);
         printf(0,"c = %s\n", ma->c);
 	printf(0,"f = %d\n", ma->f);
 
-  free(ma);
+  if(sem_init(sem,0,1) < 0) {printf(0,"test semaphore initialize: FAIL\n");}
+  else {printf(0,"test semaphore initialize: PASS\n");} 
+
+  int i;
+  int *stack3[4]; 
+  
+  num = 2;
+   
+  for (i=0;i<4;i++)
+  {
+     printf(0,"alloc thread %d\n",i);
+     stack3[i] = malloc(4096);
+     clone(&test3,&num,stack3[i]);
+  }
+  printf(0," threads allocated\n");
+  for (i=0;i<4;i++)
+  {
+     printf(0,"join thread %d\n",i);
+     if(kthread_join(stack3[i]) < 0)
+     	{printf(0,"test semaphore test join:FAIL\n");}
+  }
+
+  if (num == 10) {printf(0,"test semaphore increment: PASS\n");}
+  else {printf(0,"test semaphore increment: FAIL\n");}
+
+  
+  for (i=0;i<4;i++)
+  {
+     free(stack3[i]);
+  }
+  
+  free(ma); 
   free(stack);
   exit();
 }

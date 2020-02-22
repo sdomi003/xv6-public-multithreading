@@ -33,7 +33,7 @@ struct context {
 };
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
-enum mutexstate { MUUNUSED, LOCKED, UNLOCKED};
+enum semstate { SUNUSED,SUSED};
 
 // Per-process state
 struct proc {
@@ -58,9 +58,13 @@ struct proc {
 	
 };
 
-struct mutex_t {
-	int mid;
-	enum mutexstate state;
+
+struct sem_t {
+	enum semstate state;
+	int sid;
+	int pshared; 				// 1 = process shared, 0 = thread shared
+	uint maxcount; 				// maximum number of holders
+	uint curcount; 				// current number left to hold, how many availible
 };
 
 // Process memory is laid out contiguously, low addresses first:

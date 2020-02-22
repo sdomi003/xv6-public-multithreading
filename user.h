@@ -25,6 +25,10 @@ int sleep(int);
 int uptime(void);
 int clone(void(*)(void*),void*,void*);
 int kthread_join(void*);
+int sem_init(int*,int,uint);
+int sem_destroy(int*);
+int sem_wait(int*);
+int sem_post(int*);
 
 // ulib.c
 int stat(const char*, struct stat*);

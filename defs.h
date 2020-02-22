@@ -122,6 +122,10 @@ void            wakeup(void*);
 void            yield(void);
 int 			clone(void(*)(void*),void*,void*);
 int				kthread_join(void*);
+int				sem_init(int*,int,uint);
+int				sem_destroy(int*);
+int				sem_wait(int*);
+int				sem_post(int*);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
