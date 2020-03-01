@@ -678,7 +678,8 @@ int sem_init(int *sem,int pshared, uint count)
 		s->maxcount = s->curcount = count;
 		s->sid = nextsid++;
 		*sem = index;
-		cprintf("\nNEW SEMAPHORE ID = %d\n", *sem);
+		cprintf("sem int init = %d\n", *sem);
+
 		release(&stable.lock);
 		return index;
 	}

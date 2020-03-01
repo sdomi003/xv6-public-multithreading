@@ -162,6 +162,7 @@ void test_producer_consumer_init() {
 
 int main(int argc,char **argv)
 {
+
 	sem_test_1_init();
         printf(0, "Finished test 1\n");
 	printf(0, "STARTING PRODUCER-CONSUMER TEST\n");	
