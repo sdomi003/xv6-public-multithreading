@@ -678,11 +678,13 @@ int sem_init(int *sem,int pshared, uint count)
 		s->maxcount = s->curcount = count;
 		s->sid = nextsid++;
 		*sem = index;
+		cprintf("\nNEW SEMAPHORE ID = %d\n", *sem);
 		release(&stable.lock);
-		return 0;
+		return index;
 	}
 
 	release(&stable.lock);
+	cprintf("\nERROR INIT SEMAPHORE\n");
 	return -1;
 }
 
@@ -714,7 +716,7 @@ int sem_post(int *sem)
 	release(&stable.lock);
 	
 	if (s->state == SUNUSED) {return -1;}
-	
+        //cprintf("sem id = %d curcount post = %d \n",*sem, s->curcount);	
 	if (s->curcount < s->maxcount)
 	{ 
 		acquire(&stable.lock);
@@ -736,7 +738,8 @@ int sem_wait(int *sem)
 	if (s->state == SUNUSED) {return -1;}
 	while(1)
 	{ 
-		acquire(&stable.lock);
+		acquire(&stable.lock);	
+		//cprintf("sem id = %d curcount wait = %d \n",*sem, s->curcount);
 		if (s->curcount <= 0) 
 		{
 			release(&stable.lock);
@@ -744,7 +747,7 @@ int sem_wait(int *sem)
 		}
 		else 
 		{
-			s->curcount--;
+			s->curcount--;	
 			release(&stable.lock);
 			break;
 		}
