@@ -68,7 +68,8 @@ void sem_test_1_init(){
 
 int main(int argc,char **argv)
 {
-	sem_test_1_init();  
+	sem_test_1_init(); 
+	exit(); 
 }
 
 

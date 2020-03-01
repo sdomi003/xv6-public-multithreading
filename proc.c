@@ -678,6 +678,7 @@ int sem_init(int *sem,int pshared, uint count)
 		s->maxcount = s->curcount = count;
 		s->sid = nextsid++;
 		*sem = index;
+		cprintf("sem int init = %d\n", *sem);
 		release(&stable.lock);
 		return 0;
 	}
