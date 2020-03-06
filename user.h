@@ -23,7 +23,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-int clone(void(*)(void*),void*,void*);
+int kthread_create(void(*)(void*),void*,void*);
 int kthread_join(void*);
 int sem_init(int*,int,uint);
 int sem_destroy(int*);

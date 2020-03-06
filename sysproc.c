@@ -92,7 +92,7 @@ sys_uptime(void)
 
 
 int
-sys_clone(void)
+sys_kthread_create(void)
 { 
   int function, arg, stack;
   
@@ -102,7 +102,7 @@ sys_clone(void)
     return -1;
   if(argint(2, &stack) < 0)
     return -1;
-  return clone((void*)function,(void**)arg,(void*)stack);
+  return kthread_create((void*)function,(void**)arg,(void*)stack);
 }
 
 

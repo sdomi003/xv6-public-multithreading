@@ -52,7 +52,7 @@ void sem_test_1_init(){
   {
      printf(0,"alloc thread %d\n",i);
      stacks[i] = malloc(4096);
-     clone(&sem_test_1,ma,stacks[i]);
+     kthread_create(&sem_test_1,ma,stacks[i]);
   }
   printf(0,"4 threads allocated\n");
   for (i=0;i<4;i++)
@@ -87,8 +87,8 @@ void sem_test_1_init(){
 
 void producer(void *arg){
 	struct MultiArgs *ma = (struct MultiArgs*)arg;
-
-	for (int i = 0; i < 100; ++i) {
+    int i;
+	for (i = 0; i < 100; ++i) {
 		sem_wait(ma->sem_prod);
 		ma->sum += 1;
 		sem_post(ma->sem_cons);	
@@ -140,10 +140,10 @@ void test_producer_consumer_init() {
   printf(0, "\nproducer is %d consumer is %d \n", *sem_prod, *sem_cons);
   //sleep(230); // delete, just using to see printf 
   consumer_stack = malloc(4096);
-  clone(&consumer, ma, consumer_stack);
+  kthread_create(&consumer, ma, consumer_stack);
 
   producer_stack = malloc(4096);
-  clone(&producer, ma, producer_stack);
+  kthread_create(&producer, ma, producer_stack);
  
   if(kthread_join(producer_stack) < 0)
   {printf(0,"join:FAIL\n");}
@@ -167,6 +167,7 @@ int main(int argc,char **argv)
         printf(0, "Finished test 1\n");
 	printf(0, "STARTING PRODUCER-CONSUMER TEST\n");	
         test_producer_consumer_init();	
+    exit();
 }
 
 

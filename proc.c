@@ -545,9 +545,9 @@ procdump(void)
 
 // Work in progess Thread create
 // arg can use struct for multiple arguments
-int clone(void (*func)(void*),void *arg,void *stack)
+int kthread_create(void (*func)(void*),void *arg,void *stack)
 {
-	//cprintf("start clone\n"); // debug print
+	//cprintf("start kthread_create\n"); // debug print
 	int i, pid;
 	
 	struct proc *parent = myproc();
@@ -570,8 +570,7 @@ int clone(void (*func)(void*),void *arg,void *stack)
   *thread->tf = *parent->tf;
   
   // set parent to process
-  if (parent->isthread) { thread->parent = parent->parent;}
-  else { thread->parent = parent; }
+  thread->parent = parent;
   
   // set pgdir
   thread->pgdir = parent->pgdir; 

@@ -1,6 +1,8 @@
 #include "types.h"
 #include "user.h"
 
+#define N 10
+
 struct multiArgs
 {
    int f;
@@ -8,8 +10,17 @@ struct multiArgs
    char *c;
 };
 
+struct matrices
+{
+	int mat1[N][N];
+	int mat2[N][N];
+	int result[N][N];
+	int i, j;
+};
+
 int *r, *w, *z;
 
+// single thread catch and increment int argument
 void test1(void *num)
 {
    int *catch = (int*)num;
@@ -18,6 +29,7 @@ void test1(void *num)
    exit();
 }
 
+// passing a struct with multiple arguments and assigning new values
 void test2(void *multiarg)
 {
    struct multiArgs *ma = (struct multiArgs*)multiarg;
@@ -30,6 +42,7 @@ void test2(void *multiarg)
    exit();
 }
 
+// writer for reader/writer test
 void test3_w(void *arg)
 {
    int *num = (int*)arg;
@@ -41,6 +54,7 @@ void test3_w(void *arg)
    exit();
 }
 
+// reader for reader/writer test
 void test3_r(void *arg)
 {
    int *num = (int*)arg;
@@ -51,13 +65,27 @@ void test3_r(void *arg)
 }
 
 
+void test4(void *arg)
+{
+	struct matrices *mat = (struct matrices*)arg;
+	
+	int k;
+	
+	for (k=0; k< N; k++)
+	{
+		mat->result[mat->i][mat->j] += mat->mat1[k][mat->j] * mat->mat2[mat->i][k];
+	}
+	exit();
+}
+
+
 int main(int argc,char **argv)
 {
   int num = 0;
  
   int *stack = malloc(4096);
  
-  clone(&test1,&num,stack);
+  kthread_create(&test1,&num,stack);
   printf(0,"pid = %d\n",kthread_join(stack));
   
   if (num == 1)  printf(0,"test single increment: PASS\n");
@@ -69,7 +97,7 @@ int main(int argc,char **argv)
    ma->c = "ag";
    ma->f = 2;
 
-   clone(&test2,ma,stack);
+   kthread_create(&test2,ma,stack);
    printf(0,"pid = %d\n",kthread_join(stack));
   
    if (ma->i == 3 && strcmp(ma->c,"HJ") == 0 && ma->f == 7)  printf(0,"test struct multi arguments: PASS\n");
@@ -95,7 +123,7 @@ int main(int argc,char **argv)
   printf(0,"w = %d\n",*w);
 
 
-  int i;
+  int i, j, k;
   int *stack3[4]; 
   
   num = 2;
@@ -104,10 +132,10 @@ int main(int argc,char **argv)
   {
      printf(0,"alloc thread %d\n",i);
      stack3[i] = malloc(4096);
-     clone(&test3_w,&num,stack3[i]);
+     kthread_create(&test3_w,&num,stack3[i]);
   }
   stack3[3] = malloc(4096);
-  clone(&test3_r,&num,stack3[3]);
+  kthread_create(&test3_r,&num,stack3[3]);
 
   printf(0," threads allocated\n");
   for (i=0;i<4;i++)
@@ -120,6 +148,48 @@ int main(int argc,char **argv)
   if (num == 8) {printf(0,"test semaphore increment: PASS\n");}
   else {printf(0,"test semaphore increment: FAIL\n");}
 
+  printf(0,"\ntest matrix multiplication: setting up\n");
+  
+  struct matrices *mat = malloc(sizeof(struct matrices));
+  int resultS[N][N];
+  
+  for(i=0; i < N; i++)
+  {
+	  for(j=0; j < N; j++)
+	  {
+		  mat->mat1[i][j] = i + j + 1;
+		  mat->mat2[i][j] = i * j + 1;
+		  mat->result[i][j] = 0;
+	  }
+  }
+  
+  
+  printf(0,"test matrix multiplication: ready\n");
+  printf(0,"test matrix multiplication: running single process\n");
+  for(i=0; i < N; i++)
+  {
+	  for(j=0; j < N; j++)
+	  {
+		  for(k=0; k < N; k++)
+		  {
+			  resultS[i][j] += mat->mat1[k][j] * mat->mat2[i][k];
+		  }
+	  }
+  }
+  printf(0,"test matrix multiplication: single process complete\n");
+  
+  
+  printf(0,"test matrix multiplication: running multi threaded\n");
+  for(i=0; i < N; i++)
+  {
+	  for(j=0; j < N; j++)
+	  {
+		 int *mstack = malloc(4096);
+		 kthread_create(&test3_w,mat,mstack);
+		  
+	  }
+  }
+ 
   
   for (i=0;i<4;i++)
   {
@@ -132,5 +202,9 @@ int main(int argc,char **argv)
   free(w);
   free(ma); 
   free(stack);
+  
+  printf("")
+  
+  
   exit();
 }
