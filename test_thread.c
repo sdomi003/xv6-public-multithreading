@@ -77,7 +77,27 @@ void test4(void *arg)
 	}
 	exit();
 }
-
+void inner_recursive_thread(void *arg) {
+	int *num_threads = (int*) arg;
+	printf(0, "\n INNER THREAD # %d checking in. \n", (int) *num_threads);
+	*num_threads = *num_threads - 1;	
+	if(*num_threads > 0){
+		int *stack_inner = malloc(4096);
+		kthread_create(&inner_recursive_thread, num_threads, stack_inner);
+		kthread_join(stack_inner);
+		free(stack_inner);
+	}
+	exit();
+}
+void init_recursive_test(int *num_threads) {	
+	printf(0, "\nGoing to recursively create %d threads.\n", *num_threads);
+	int *stack_inner = malloc(4096);
+	kthread_create (&inner_recursive_thread, num_threads, stack_inner);	
+	kthread_join(stack_inner);
+	free(stack_inner);
+	//sleep(1000);
+	exit();
+}
 
 int main(int argc,char **argv)
 {
@@ -123,7 +143,7 @@ int main(int argc,char **argv)
   printf(0,"w = %d\n",*w);
 
 
-  int i, j, k;
+  int i;//, j, k;
   int *stack3[4]; 
   
   num = 2;
@@ -148,6 +168,7 @@ int main(int argc,char **argv)
   if (num == 8) {printf(0,"test semaphore increment: PASS\n");}
   else {printf(0,"test semaphore increment: FAIL\n");}
 
+  /*
   printf(0,"\ntest matrix multiplication: setting up\n");
   
   struct matrices *mat = malloc(sizeof(struct matrices));
@@ -190,7 +211,7 @@ int main(int argc,char **argv)
 	  }
   }
  
-  
+ */ 
   for (i=0;i<4;i++)
   {
      free(stack3[i]);
@@ -203,8 +224,12 @@ int main(int argc,char **argv)
   free(ma); 
   free(stack);
   
-  printf("")
-  
+  printf(0,"");
+
+  // test recursive threads
+  int *num_threads = (int*)(malloc(sizeof(int)));
+  *num_threads = 10;
+  init_recursive_test(num_threads);
   
   exit();
 }
