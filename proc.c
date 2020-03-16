@@ -569,7 +569,7 @@ int kthread_create(void (*func)(void*),void *arg,void *stack)
   // set trapframe
   *thread->tf = *parent->tf;
   
-  // set parent to process
+  // set parent
   thread->parent = parent;
   
   // set pgdir

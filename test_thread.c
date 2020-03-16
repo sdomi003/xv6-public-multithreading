@@ -1,21 +1,12 @@
 #include "types.h"
 #include "user.h"
 
-#define N 10
 
 struct multiArgs
 {
    int f;
    int i;
    char *c;
-};
-
-struct matrices
-{
-	int mat1[N][N];
-	int mat2[N][N];
-	int result[N][N];
-	int i, j;
 };
 
 int *r, *w, *z;
@@ -64,19 +55,6 @@ void test3_r(void *arg)
    exit();
 }
 
-
-void test4(void *arg)
-{
-	struct matrices *mat = (struct matrices*)arg;
-	
-	int k;
-	
-	for (k=0; k< N; k++)
-	{
-		mat->result[mat->i][mat->j] += mat->mat1[k][mat->j] * mat->mat2[mat->i][k];
-	}
-	exit();
-}
 void inner_recursive_thread(void *arg) {
 	int *num_threads = (int*) arg;
 	printf(0, "\n INNER THREAD # %d checking in. \n", (int) *num_threads);
@@ -143,7 +121,7 @@ int main(int argc,char **argv)
   printf(0,"w = %d\n",*w);
 
 
-  int i;//, j, k;
+  int i;
   int *stack3[4]; 
   
   num = 2;
@@ -167,51 +145,8 @@ int main(int argc,char **argv)
 
   if (num == 8) {printf(0,"test semaphore increment: PASS\n");}
   else {printf(0,"test semaphore increment: FAIL\n");}
-
-  /*
-  printf(0,"\ntest matrix multiplication: setting up\n");
-  
-  struct matrices *mat = malloc(sizeof(struct matrices));
-  int resultS[N][N];
-  
-  for(i=0; i < N; i++)
-  {
-	  for(j=0; j < N; j++)
-	  {
-		  mat->mat1[i][j] = i + j + 1;
-		  mat->mat2[i][j] = i * j + 1;
-		  mat->result[i][j] = 0;
-	  }
-  }
-  
-  
-  printf(0,"test matrix multiplication: ready\n");
-  printf(0,"test matrix multiplication: running single process\n");
-  for(i=0; i < N; i++)
-  {
-	  for(j=0; j < N; j++)
-	  {
-		  for(k=0; k < N; k++)
-		  {
-			  resultS[i][j] += mat->mat1[k][j] * mat->mat2[i][k];
-		  }
-	  }
-  }
-  printf(0,"test matrix multiplication: single process complete\n");
-  
-  
-  printf(0,"test matrix multiplication: running multi threaded\n");
-  for(i=0; i < N; i++)
-  {
-	  for(j=0; j < N; j++)
-	  {
-		 int *mstack = malloc(4096);
-		 kthread_create(&test3_w,mat,mstack);
-		  
-	  }
-  }
  
- */ 
+ 
   for (i=0;i<4;i++)
   {
      free(stack3[i]);
