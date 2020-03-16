@@ -661,7 +661,9 @@ int kthread_join(void *tid)
 	}
 }
 
-int sem_init(int *sem,int pshared, uint count)
+// initialize semaphore, int *sem is the address to the semaphore ID 
+// the ID is the array location of the semaphore in stable
+int sem_init(int *sem, uint count)
 {
 	struct sem_t *s;
 	int index;
@@ -673,7 +675,6 @@ int sem_init(int *sem,int pshared, uint count)
 		if (s->state == SUSED){continue;}
 		
 		s->state = SUSED;
-		s->pshared = pshared;
 		s->maxcount = s->curcount = count;
 		s->sid = nextsid++;
 		*sem = index;
@@ -701,7 +702,6 @@ int sem_destroy(int *sem)
 	}
 	
 	s->state = SUNUSED;
-	s->pshared = 0;
 	s->maxcount = s->curcount = 0;
 	s->sid = 0;
 	release(&stable.lock);
@@ -749,7 +749,7 @@ int sem_wait(int *sem)
 		{
 			s->curcount--;	
 			release(&stable.lock);
-			break;
+			return 0;
 		}
 	}
 	

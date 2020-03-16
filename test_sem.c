@@ -37,7 +37,7 @@ void sem_test_1_init(){
   struct MultiArgs multi_arg;
   struct MultiArgs *ma = &multi_arg;
   // sem(int* sem_id_will_be_here, 0=process 1=thread, max_number_of_subscribers)
-  if(sem_init(sem,0,1) < 0) {
+  if(sem_init(sem,1) < 0) {
 	  printf(0,"test semaphore 1 initialize: FAIL\n");
   }
   else {
@@ -117,14 +117,14 @@ void test_producer_consumer_init() {
   struct MultiArgs *ma = &multi_arg;
   ma->sum = 1; // the data to be manipulated in this test
   // sem(int* sem_id_will_be_here, 0=process 1=thread, max_number_of_subscribers)
-  if(sem_init(sem_cons,0,1) < 0) {
+  if(sem_init(sem_cons,1) < 0) {
 	  printf(0,"test semaphore cons initialize: FAIL\n");
   }
   else {
 	  printf(0,"test semaphore cons initialize: PASS\n");
   }
 
-  if(sem_init(sem_prod,0,1) < 0) {
+  if(sem_init(sem_prod,1) < 0) {
 	  printf(0,"test semaphore prod initialize: FAIL\n");
   }
   else {

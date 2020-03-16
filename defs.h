@@ -122,7 +122,7 @@ void            wakeup(void*);
 void            yield(void);
 int 			kthread_create(void(*)(void*),void*,void*);
 int				kthread_join(void*);
-int				sem_init(int*,int,uint);
+int				sem_init(int*,uint);
 int				sem_destroy(int*);
 int				sem_wait(int*);
 int				sem_post(int*);

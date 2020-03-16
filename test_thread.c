@@ -109,12 +109,12 @@ int main(int argc,char **argv)
   w = malloc(sizeof(int));
   r = malloc(sizeof(int));  
 
-  //*w = sem_init(w,0,1);
-  if(sem_init(w,0,1) < 0) {printf(0,"test semaphore initialize: FAIL\n");}
+  //*w = sem_init(w,1);
+  if(sem_init(w,1) < 0) {printf(0,"test semaphore initialize: FAIL\n");}
   else {printf(0,"test semaphore initialize: PASS\n");} 
 
-  //*r = sem_init(r,0,1);
-  if(sem_init(r,0,1) < 0) {printf(0,"test semaphore initialize: FAIL\n");}
+  //*r = sem_init(r,1);
+  if(sem_init(r,1) < 0) {printf(0,"test semaphore initialize: FAIL\n");}
   else {printf(0,"test semaphore initialize: PASS\n");} 
 
   printf(0,"r = %d\n",*r);

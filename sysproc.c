@@ -118,14 +118,12 @@ sys_kthread_join(void)
 int
 sys_sem_init(void)
 {
-	int sem,pshared,count;
+	int sem,count;
     if(argint(0, &sem) < 0)
         return -1;
-    if(argint(1, &pshared) < 0)
+    if(argint(1, &count) < 0)
         return -1;
-    if(argint(2, &count) < 0)
-        return -1;
-    return sem_init((int*)sem,pshared,(uint)count);
+    return sem_init((int*)sem,(uint)count);
 }
 
 int

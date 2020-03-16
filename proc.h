@@ -62,7 +62,6 @@ struct proc {
 struct sem_t {
 	enum semstate state;
 	int sid;
-	int pshared; 				// 1 = process shared, 0 = thread shared
 	uint maxcount; 				// maximum number of holders
 	uint curcount; 				// current number left to hold, how many availible
 };
