@@ -553,7 +553,7 @@ int kthread_create(void (*func)(void*),void *arg,void *stack)
 	struct proc *parent = myproc();
 	struct proc *thread;
 	
-	if (parent->threadCnt >= 10)
+	if (parent->threadCnt >= 21)
 	{
 		cprintf("Current Process has too many threads");
 		return -1;
@@ -713,17 +713,18 @@ int sem_post(int *sem)
 	struct sem_t *s;
 	acquire(&stable.lock);
 	s = &stable.sem[(*sem)];
-	release(&stable.lock);
 	
 	if (s->state == SUNUSED) {return -1;}
         //cprintf("sem id = %d curcount post = %d \n",*sem, s->curcount);	
 	if (s->curcount < s->maxcount)
 	{ 
-		acquire(&stable.lock);
 		s->curcount++; 
-		release(&stable.lock);
 	}
-	else { return -1;}
+	else { 
+		release(&stable.lock);
+		return -1;
+	}
+	release(&stable.lock);
 	return 0;
 }
 
@@ -747,6 +748,7 @@ int sem_wait(int *sem)
 		}
 		else 
 		{
+			//cprintf("sem id = %d curcount wait = %d \n",*sem, s->curcount);
 			s->curcount--;	
 			release(&stable.lock);
 			return 0;

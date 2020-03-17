@@ -2,26 +2,30 @@
 #include "user.h"
 
 
-#define N 10
+#define N 21
+int *sem;
 
 struct matrices
 {
 	int mat1[N][N];
 	int mat2[N][N];
 	int result[N][N];
-	int i, j;
+	int i;
 };
-
 
 void test4(void *arg)
 {
 	struct matrices *mat = (struct matrices*)arg;
 	
-	int k;
+	int j, k, temp;
 	
-	for (k=0; k< N; k++)
+	for (j=0; j< N; j++)
 	{
-		mat->result[mat->i][mat->j] += mat->mat1[k][mat->j] * mat->mat2[mat->i][k];
+		for (k=0; k< N; k++)
+		{
+			temp = mat->mat1[j][k] * mat->mat2[k][mat->i];
+			mat->result[mat->i][j] += temp;
+		}
 	}
 	exit();
 }
@@ -29,7 +33,7 @@ void test4(void *arg)
 int main(int argc, char **argv)
 {	 
   printf(0,"test matrix multiplication: setting up\n");
-  
+
   struct matrices *mat[N];
   int *mstack[N];
   int result_1[N][N], result_2[N][N];
@@ -62,53 +66,50 @@ int main(int argc, char **argv)
 	  {
 		  for(k=0; k < N; k++)
 		  {
-			  result_1[i][j] += mat[0]->mat1[k][j] * mat[0]->mat2[i][k];
+			  result_1[i][j] += mat[0]->mat1[j][k] * mat[0]->mat2[k][i];
 		  }
 	  }
   }
-  printf(0,"single process complete\n");
+  printf(0,"single process complete, time = %d\n");
   
-  
-  printf(0,"running multi threaded\n");
   num = 0;
+  printf(0,"running multi threaded\n");
+  
   for(i=0; i < N; i++)
   {
-	  for(j=0; j < N; j++)
-	  { 
-		 if (num > 2) 
-		 {
-		  kthread_join(0);
-		  num--;
-		 }
-		 mat[j]->i = i;
-		 mat[j]->j = j;
-		 mstack[j] = malloc(4096);
-		 kthread_create(&test4,mat[j],mstack);
-		 num++;
-	  }
-	  
-	  for (k=0; k < N; k++)
-	  {
-		  kthread_join(0);
-	  }
-	  
-	  for (k=0; k < N; k++)
-	  {
-		  result_2[i][k] = mat[k]->result[i][k];
-	  }
-	  for (j=0;j < N; j++)
-	  {
-		  free(mstack[j]);
-	  }
+	 mat[i]->i = i;
+	 mstack[i] = malloc(4096);
+	 kthread_create(&test4,mat[i],mstack[i]);
+	 num++;
   }
+	  
+  for (k=0; k < N; k++)
+  {
+	  kthread_join(0);
+  }
+  
+  for (i=0; i< N; i++)
+  {
+	for (j=0; j < N; j++)
+	{
+		result_2[j][i] = mat[j]->result[j][i];
+	}
+  }
+  
+  for (j=0;j < N; j++)
+  {
+	 free(mstack[j]);
+  }
+  
   printf(0,"multi threaded complete\n");
+  printf(0,"number of threads = %d\n",num);
   
   for(i=0; i < N; i++)
   {
 	  for(j=0; j < N; j++)
 	  {
-		//  printf(0,"result_1[%d][%d] = %d\n",i,j, result_1[i][j]); 
-		//  printf(0,"result_2[%d][%d] = %d\n",i,j, result_2[i][j]); 
+		  //printf(0,"result_1[%d][%d] = %d\n",i,j, result_1[i][j]); 
+		  //printf(0,"result_2[%d][%d] = %d\n",i,j, result_2[i][j]); 
 		  if (result_1[i][j] != result_2[i][j])
 		  { 
 			  printf(0,"FAIL due to wrong results\n"); 
@@ -127,9 +128,9 @@ int main(int argc, char **argv)
   }
   printf(0,"test matrix multiplication: PASSED\n");
   
-  for(k=0; k < N; k++)
+  for(i=0; i < N; i++)
   {
-	  free(mat[k]);
+	  free(mat[i]);
   }
   exit();
 }
